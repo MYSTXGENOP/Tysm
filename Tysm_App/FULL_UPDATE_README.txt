@@ -1,0 +1,1 @@
+Complete Qwen3 8B + kaomoji + repetition fix bundle. Back up your current installation before replacing files. To preserve newer memories, keep your current tysm_memory.json and tysm_history.json files rather than overwriting them with copies from this archive. Launch the active assistant.py inside Tysm_Updated.

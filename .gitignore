@@ -1,0 +1,23 @@
+# Local user data and credentials
+*.sqlite3
+*.sqlite3-*
+**/tysm_memory.json
+**/tysm_history.json
+**/tysm_history_settings.json
+**/tysm_time_state.json
+**/music_settings.json
+**/music_preferences.json
+**/music_playlist_aliases.json
+**/tysm_phone_settings.json
+**/logs/
+*.log
+# Build output
+.venv/
+build/
+dist/
+installer_output/
+__pycache__/
+*.py[cod]
+*.spec
+.env
+.env.*
