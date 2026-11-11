@@ -25,6 +25,7 @@ from tysm_checkins import CheckinPolicy
 from tysm_voice import guidance as voice_guidance
 from tysm_phone import PhoneReminders
 from tysm_desktop import execute as execute_window_command
+from tysm_activity_logs import record as record_activity_event, recent as recent_activity_events
 from tysm_recovery import create as create_backup, backups as list_backups, verify as verify_backup, daily as daily_backup
 
 # User data lives outside the replaceable application installation.
@@ -536,6 +537,7 @@ def handle_desktop_command(user_text):
     add_message("You", user_text)
     add_message("Tysm", result.message)
     status_label.config(text=result.status)
+    record_activity_event("action", "success")
     return True
 
 
@@ -674,6 +676,7 @@ def send_message(_event=None):
 
     entry.delete(0, tk.END)
     checkin_policy.record_activity()
+    record_activity_event("system", "info")  # Never log request text.
 
     if text.lower() in ("/update", "/updates", "/checkupdates"):
         check_for_updates()
@@ -1163,6 +1166,26 @@ close_button = tk.Button(header, text="✕", command=close_chat,
     relief=tk.FLAT, bd=0, font=("Segoe UI", 12), cursor="hand2", padx=10, pady=5)
 close_button.pack(side=tk.RIGHT)
 
+activity_visible = tk.BooleanVar(value=False)
+
+def toggle_activity_logs():
+    if activity_visible.get():
+        activity_visible.set(False)
+        activity_frame.pack_forget()
+        activity_button.configure(text="LOGS")
+    else:
+        activity_visible.set(True)
+        activity_frame.pack(side=tk.TOP, fill=tk.X, padx=15, pady=(0, 7), after=status_bar)
+        activity_button.configure(text="HIDE LOGS")
+        refresh_activity_logs()
+
+activity_button = tk.Button(
+    header, text="LOGS", command=toggle_activity_logs,
+    bg=SURFACE_2, fg=CYAN, activebackground=PURPLE,
+    activeforeground="white", relief=tk.FLAT, bd=0,
+    font=("Consolas", 9, "bold"), cursor="hand2", padx=8, pady=6)
+activity_button.pack(side=tk.RIGHT, padx=(0, 6))
+
 # Full-size animated character/pendant stage inside the chat.
 # Pixel-art resizing uses NEAREST, preserving intentional hard edges.
 animation_stage = tk.Frame(body, bg=BG, height=205)
@@ -1181,6 +1204,28 @@ tk.Label(status_bar, text="●", fg=CYAN, bg=BG, font=("Segoe UI", 10)).pack(sid
 status_label = tk.Label(status_bar, text="Ready", fg=CYAN, bg=BG,
     font=("Consolas", 10), anchor="w")
 status_label.pack(side=tk.LEFT, padx=(5, 0))
+
+activity_frame = tk.Frame(body, bg=SURFACE_2, padx=7, pady=6)
+tk.Label(activity_frame, text="ACTIVITY // LOCAL EVENTS", fg=PINK,
+         bg=SURFACE_2, font=("Consolas", 9, "bold"), anchor="w").pack(fill=tk.X)
+activity_text = tk.Text(
+    activity_frame, height=5, wrap=tk.WORD, state=tk.DISABLED,
+    font=("Consolas", 8), bg=SURFACE, fg=CYAN, relief=tk.FLAT,
+    bd=0, padx=6, pady=4, takefocus=0)
+activity_text.pack(fill=tk.X)
+
+def refresh_activity_logs():
+    if not activity_visible.get() or bubble_state["compact"]:
+        return
+    events = recent_activity_events(12)
+    lines = [f"{item.get('time', '')[11:19]}  {item.get('event', 'system').upper()}  "
+             f"{item.get('status', 'info').upper()}" for item in events]
+    activity_text.configure(state=tk.NORMAL)
+    activity_text.delete("1.0", tk.END)
+    activity_text.insert(tk.END, "\n".join(lines) if lines else "No technical events yet.")
+    activity_text.configure(state=tk.DISABLED)
+    activity_text.see(tk.END)
+    root.after(2000, refresh_activity_logs)
 
 composer = tk.Frame(body, bg=SURFACE_2, padx=8, pady=8)
 composer.pack(side=tk.BOTTOM, fill=tk.X, padx=15, pady=(0, 12))
@@ -1244,6 +1289,7 @@ def toggle_compact():
         bubble_state["compact"] = True
         transcript_frame.pack_forget()
         controls.pack_forget()
+        activity_frame.pack_forget()
         # Keep the pendant visible, but make its entire stage fit mini-mode.
         # The composer stays packed at the BOTTOM, with sufficient room above it.
         animation_stage.configure(height=137)
@@ -1261,6 +1307,9 @@ def toggle_compact():
         pendant_animator.set_compact(False)
         panel.minsize(350, 370)
         controls.pack(side=tk.BOTTOM, fill=tk.X, padx=15, pady=(0, 6))
+        if activity_visible.get():
+            activity_frame.pack(side=tk.TOP, fill=tk.X, padx=15, pady=(0, 7), after=status_bar)
+            refresh_activity_logs()
         transcript_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=15, pady=(0, 8))
         compact_button.configure(text="−")
 
@@ -1325,5 +1374,6 @@ startup_sequence = TysmStartup(root, icon_window, icon_canvas,
     Path(__file__).resolve().parent / "assets" / "animations" / "pendant_idle.gif",
     Path(__file__).resolve().parent / "assets" / "audio" / "startup.wav",
     on_complete=open_chat)
+record_activity_event("startup", "success")
 root.after(160, startup_sequence.start)
 root.mainloop()
