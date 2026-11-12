@@ -1,5 +1,5 @@
 #define AppName "Tysm"
-#define AppVersion "1.2.0"
+#define AppVersion "1.2.1"
 [Setup]
 AppId={{EAE5C70A-3CC9-4D4F-8D1A-3AFD69D58B43}
 AppName={#AppName}
