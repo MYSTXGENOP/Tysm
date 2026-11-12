@@ -8,7 +8,7 @@ import threading
 import urllib.error
 import urllib.request
 
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.2.1"
 # Set this to YOUR GitHub repository (public GitHub releases).
 GITHUB_REPOSITORY = "MYSTXGENOP/Tysm"
 USER_AGENT = "Tysm-Updater/" + APP_VERSION
