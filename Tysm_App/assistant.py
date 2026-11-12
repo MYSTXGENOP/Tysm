@@ -1074,7 +1074,7 @@ pendant_animator = PendantAnimator(
 )
 pendant_animator.start()
 
-from tysm_startup import TysmStartup
+from tysm_startup_intro import TysmIntroStartup as TysmStartup
 
 # PHANTOM INTERFACE: floating, borderless, draggable chat panel.
 BG = "#0b0912"
