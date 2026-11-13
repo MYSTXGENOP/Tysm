@@ -22,7 +22,8 @@ class PendantAnimator:
         try:
             from PIL import Image, ImageTk, ImageSequence
             for key, filename in (("idle", "pendant_idle.gif"), ("thinking", "pendant_thinking.gif"),
-                                  ("transition", "glitch_transition.gif"), ("hologram", "tysm_hologram.gif")):
+                                  ("transition", "glitch_transition.gif"), ("hologram", "tysm_hologram.gif"),
+                                  ("chat_new", "tysm_new_chat_transition.gif")):
                 image = Image.open(self.assets_dir / filename)
                 self.frames[key] = []
                 self.header_frames[key] = []
@@ -35,7 +36,7 @@ class PendantAnimator:
                     header_f = frame.convert("RGBA")
                     # Keep the hologram larger, with room for a full character.
                     # Both frames remain centered inside the dedicated chat stage.
-                    target = (192, 192) if key == "hologram" else (178, 178)
+                    target = (192, 192) if key in ("hologram", "chat_new") else (178, 178)
                     header_f.thumbnail(target, Image.Resampling.NEAREST)
                     self.header_frames[key].append(ImageTk.PhotoImage(header_f, master=root))
                     mini_f = frame.convert("RGBA")
@@ -55,7 +56,8 @@ class PendantAnimator:
                 for key, filename in (("idle", "pendant_idle.gif"),
                                       ("thinking", "pendant_thinking.gif"),
                                       ("transition", "glitch_transition.gif"),
-                                      ("hologram", "tysm_hologram.gif")):
+                                      ("hologram", "tysm_hologram.gif"),
+                                      ("chat_new", "tysm_new_chat_transition.gif")):
                     path = self.assets_dir / filename
                     if not path.exists():
                         raise FileNotFoundError(str(path))
@@ -81,7 +83,7 @@ class PendantAnimator:
                     for idx in range(len(sequence)):
                         photo = tk.PhotoImage(master=root, file=str(path),
                                               format=f"gif -index {idx}")
-                        target = 192 if key == "hologram" else 178
+                        target = 192 if key in ("hologram", "chat_new") else 178
                         factor = max(1, (max(photo.width(), photo.height()) + target - 1) // target)
                         if factor > 1:
                             photo = photo.subsample(factor, factor)
@@ -120,10 +122,11 @@ class PendantAnimator:
         # The original glitch asset is ~0.4 sec. Two passes make it visible
         # without changing any of the approved GIF artwork.
         self.transition_loops_remaining = 2
-        self.transition_target = "hologram"
+        import random
+        self.transition_target = random.choice(("hologram", "chat_new")) if self.frames.get("chat_new") else "hologram"
         self.hologram_until = 0
         self.hologram_loops_remaining = 0
-        print("Tysm animation: reply -> glitch transition")
+        print(f"Tysm animation: reply -> glitch -> {self.transition_target}")
 
     def start(self):
         if self.enabled:
@@ -144,8 +147,8 @@ class PendantAnimator:
 
         if self.mode == "transition":
             desired = "transition"
-        elif self.mode == "hologram":
-            desired = "hologram"
+        elif self.mode in ("hologram", "chat_new"):
+            desired = self.mode
         elif state == "thinking":
             desired = "thinking"
         else:
@@ -165,7 +168,7 @@ class PendantAnimator:
 
         if self.index >= len(seq):
             self.index = 0
-            if self.mode == "hologram":
+            if self.mode in ("hologram", "chat_new"):
                 self.hologram_loops_remaining -= 1
                 if self.hologram_loops_remaining <= 0:
                     self.mode = "transition"
@@ -179,10 +182,10 @@ class PendantAnimator:
                     destination = self.transition_target
                     self.mode = destination
                     self.index = 0
-                    if destination == "hologram":
+                    if destination in ("hologram", "chat_new"):
                         self.hologram_loops_remaining = 2
                         self.hologram_until = 0
-                        print("Tysm animation: glitch -> hologram (2 slow loops)")
+                        print(f"Tysm animation: glitch -> {destination} (2 loops)")
                     else:
                         self.hologram_until = 0
                         print("Tysm animation: return glitch -> idle")
