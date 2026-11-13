@@ -24,6 +24,8 @@ class PendantAnimator:
             for key, filename in (("idle", "pendant_idle.gif"), ("thinking", "pendant_thinking.gif"),
                                   ("transition", "glitch_transition.gif"), ("hologram", "tysm_hologram.gif"),
                                   ("chat_new", "tysm_new_chat_transition.gif")):
+                if key == "chat_new" and not (self.assets_dir / filename).exists():
+                    continue
                 image = Image.open(self.assets_dir / filename)
                 self.frames[key] = []
                 self.header_frames[key] = []
@@ -60,6 +62,8 @@ class PendantAnimator:
                                       ("chat_new", "tysm_new_chat_transition.gif")):
                     path = self.assets_dir / filename
                     if not path.exists():
+                        if key == "chat_new":
+                            continue
                         raise FileNotFoundError(str(path))
                     sequence = []
                     index = 0
