@@ -1260,7 +1260,7 @@ activity_text = tk.Text(
 activity_text.pack(fill=tk.X)
 
 def refresh_activity_logs():
-    if not activity_visible.get() or bubble_state["compact"]:
+    if not activity_visible.get():
         return
     events = recent_activity_events(12)
     lines = [f"{item.get('time', '')[11:19]}  {item.get('event', 'system').upper()}  "
@@ -1314,8 +1314,8 @@ chat_panel.tag_configure("user_msg", foreground=CYAN, lmargin1=6, lmargin2=6)
 
 # Compact mode is a genuinely smaller panel, not merely a short wide one.
 # Keep the normal chat dimensions so the full animation stage is restored.
-COMPACT_WIDTH = 400
-COMPACT_HEIGHT = 342
+COMPACT_WIDTH = 390
+COMPACT_HEIGHT = 500
 
 def toggle_compact():
     if morph_state["running"]:
@@ -1328,21 +1328,22 @@ def toggle_compact():
             max(560, panel.winfo_height()),
         )
         bubble_state["compact"] = True
-        transcript_frame.pack_forget()
         controls.pack_forget()
         activity_frame.pack_forget()
+        animation_stage.pack_forget()
         # Keep the pendant visible, but make its entire stage fit mini-mode.
         # The composer stays packed at the BOTTOM, with sufficient room above it.
         animation_stage.configure(height=137)
         avatar.configure(width=118, height=118)
         pendant_animator.set_compact(True)
-        panel.minsize(350, 300)
+        panel.minsize(350, 390)
         panel.geometry(f"{COMPACT_WIDTH}x{COMPACT_HEIGHT}")
         compact_button.configure(text="▢")
     else:
         bubble_state["compact"] = False
         w, h = bubble_state["normal_size"]
         panel.geometry(f"{w}x{h}")
+        animation_stage.pack(fill=tk.X, padx=12, pady=(0, 4), before=status_bar)
         animation_stage.configure(height=205)
         avatar.configure(width=210, height=198)
         pendant_animator.set_compact(False)
@@ -1351,7 +1352,6 @@ def toggle_compact():
         if activity_visible.get():
             activity_frame.pack(side=tk.TOP, fill=tk.X, padx=15, pady=(0, 7), after=status_bar)
             refresh_activity_logs()
-        transcript_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=15, pady=(0, 8))
         compact_button.configure(text="−")
 
 compact_button = tk.Button(header, text="−", command=lambda: toggle_compact(),
@@ -1359,6 +1359,9 @@ compact_button = tk.Button(header, text="−", command=lambda: toggle_compact(),
     relief=tk.FLAT, bd=0, font=("Segoe UI", 12, "bold"), cursor="hand2", padx=10, pady=5)
 compact_button.pack(side=tk.RIGHT, padx=(0, 6))
 
+
+# Start in compact mode while preserving the transcript and composer.
+toggle_compact()
 
 # Drag bottom-right grip to resize. Tk's borderless window has no native resize handles.
 resize_grip = tk.Label(body, text="◢", fg=PURPLE, bg=BG, cursor="size_nw_se", font=("Segoe UI", 11))
