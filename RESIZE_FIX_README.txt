@@ -1,0 +1,1 @@
+FIX: resize grip now lives inside the chat, disappears with it, and updates both width and height. Removed forced 275px width override. Qt surface now includes extra space for the floating dock. Drag bottom-left corner of OPEN chat to resize. Windows runtime not tested here.

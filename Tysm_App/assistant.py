@@ -61,6 +61,8 @@ adaptive_memory = AdaptiveMemory(ADAPTIVE_DB)
 phone_reminders = PhoneReminders(DATA_DIR)
 v35 = ContextTools(ADAPTIVE_DB)
 assistant_state = "idle"
+v4_emit = None
+V4_WEB_MODE = True
 
 SYSTEM_PROMPT = (
     "You are Tysm, pronounced 'sim', the user's named AI assistant, not a "
@@ -298,6 +300,9 @@ def strip_legacy_emotion_tags(text):
 
 def add_message(name, text):
     """Styled conversation transcript; keeps the existing AI logic intact."""
+    if v4_emit is not None:
+        face = getattr(portrait_chooser, 'last', None) if 'portrait_chooser' in globals() else None
+        v4_emit('message', who=name, text=text)
     chat_panel.config(state=tk.NORMAL)
     who = "TYSM" if name.lower() == "tysm" else name.upper()
     tag = "tysm_msg" if name.lower() == "tysm" else "user_msg"
@@ -1076,7 +1081,7 @@ pendant_animator = PendantAnimator(
 )
 pendant_animator.start()
 
-from tysm_startup_intro import TysmIntroStartup as TysmStartup
+from tysm_v5_boot import V5Boot as TysmStartup
 
 # PHANTOM INTERFACE: floating, borderless, draggable chat panel.
 BG = "#0b0912"
@@ -1163,20 +1168,20 @@ for text_value, font_value, fg_value in (
     label.bind("<ButtonPress-1>", panel_drag_start)
     label.bind("<B1-Motion>", panel_drag_move)
 
-# V5: optional tiny portrait, chosen by Tysm when she replies.
-# Missing assets must never prevent the assistant from starting.
+# V5 approved small pixel portraits; missing assets never block launch.
 portrait_chooser = PortraitChooser()
 portrait_image = None
 portrait_label = tk.Label(header, bg=BG, bd=0, highlightthickness=0)
 portrait_label.pack(side=tk.LEFT, padx=(5, 0))
-
 def update_reply_portrait(reply):
     global portrait_image
-    chosen = portrait_chooser.choose(reply)
-    path = portrait_path(chosen)
+    path = portrait_path(portrait_chooser.choose(reply))
+    if v4_emit is not None:
+        try:
+            v4_emit('portrait', face=int(path.stem.replace('face','')))
+        except (ValueError, TypeError):
+            pass
     if not path.is_file():
-        portrait_label.configure(image="", text="")
-        portrait_image = None
         return
     try:
         from PIL import Image, ImageTk
@@ -1184,10 +1189,10 @@ def update_reply_portrait(reply):
             thumb = source.convert("RGBA")
             thumb.thumbnail((34, 34), Image.Resampling.NEAREST)
             portrait_image = ImageTk.PhotoImage(thumb)
-        portrait_label.configure(image=portrait_image, text="")
+        portrait_label.configure(image=portrait_image)
     except Exception:
-        portrait_label.configure(image="", text="")
-        portrait_image = None
+        pass
+update_reply_portrait("Hello")
 
 close_button = tk.Button(header, text="✕", command=close_chat,
     bg=SURFACE_2, fg=PINK, activebackground=PURPLE, activeforeground="white",
@@ -1207,28 +1212,20 @@ def toggle_activity_logs():
         quick_menu.entryconfigure(2, label="Hide logs")
         refresh_activity_logs()
 
-# V5: secondary actions live in one compact overflow menu.
-# Keep the existing update and activity-log handlers, without duplicate toolbar buttons.
 def request_screen_check():
-    # Never capture the desktop implicitly; screen inspection requires a
-    # separately implemented, explicit user-approved capture workflow.
-    add_message("Tysm", "Screen check isn't connected in this build yet. I won't capture your desktop without a clear approval step.")
-
+    # No silent screenshot capture. Keep this explicit until the existing
+    # screen vision backend can be connected with an approval dialog.
+    messagebox.showinfo("Tysm // Check screen", "Screen capture isn't wired into this build yet. No screenshot was taken.")
 quick_menu = tk.Menu(header, tearoff=False, bg=SURFACE_2, fg="#f4e5ff",
                      activebackground=PURPLE, activeforeground="white")
 quick_menu.add_command(label="Check screen", command=request_screen_check)
 quick_menu.add_command(label="Check updates", command=check_for_updates)
 quick_menu.add_command(label="View logs", command=toggle_activity_logs)
-
 def show_quick_menu():
-    quick_menu.tk_popup(menu_button.winfo_rootx(),
-                        menu_button.winfo_rooty() + menu_button.winfo_height())
-
-menu_button = tk.Button(
-    header, text="···", command=show_quick_menu,
-    bg=SURFACE_2, fg=CYAN, activebackground=PURPLE,
-    activeforeground="white", relief=tk.FLAT, bd=0,
-    font=("Segoe UI", 14, "bold"), cursor="hand2", padx=8, pady=2)
+    quick_menu.tk_popup(menu_button.winfo_rootx(), menu_button.winfo_rooty() + menu_button.winfo_height())
+menu_button = tk.Button(header, text="···", command=show_quick_menu,
+    bg=SURFACE_2, fg=CYAN, activebackground=PURPLE, activeforeground="white",
+    relief=tk.FLAT, bd=0, font=("Segoe UI", 14, "bold"), cursor="hand2", padx=8, pady=2)
 menu_button.pack(side=tk.RIGHT, padx=(0, 6))
 
 # Full-size animated character/pendant stage inside the chat.
@@ -1244,7 +1241,7 @@ avatar.bind("<ButtonPress-1>", panel_drag_start)
 avatar.bind("<B1-Motion>", panel_drag_move)
 
 status_bar = tk.Frame(body, bg=BG)
-status_bar.pack(fill=tk.X, padx=9, pady=(0, 3))
+status_bar.pack(fill=tk.X, padx=17, pady=(0, 9))
 tk.Label(status_bar, text="●", fg=CYAN, bg=BG, font=("Segoe UI", 10)).pack(side=tk.LEFT)
 status_label = tk.Label(status_bar, text="Ready", fg=CYAN, bg=BG,
     font=("Consolas", 10), anchor="w")
@@ -1298,7 +1295,7 @@ checkin_box = tk.Checkbutton(controls, text="AUTO CHECK-INS",
     activebackground=BG, activeforeground="white", font=("Consolas", 9),
     highlightthickness=0)
 checkin_box.pack(side=tk.RIGHT)
-# Update checking is available from the header overflow menu.
+# Updates and logs moved to the top-right overflow menu.
 
 
 transcript_frame = tk.Frame(body, bg=SURFACE_2, padx=1, pady=1)
@@ -1360,8 +1357,7 @@ compact_button = tk.Button(header, text="−", command=lambda: toggle_compact(),
 compact_button.pack(side=tk.RIGHT, padx=(0, 6))
 
 
-# Start in compact mode while preserving the transcript and composer.
-toggle_compact()
+toggle_compact()  # V4-sized chat is the default. Expanded mode remains optional.
 
 # Drag bottom-right grip to resize. Tk's borderless window has no native resize handles.
 resize_grip = tk.Label(body, text="◢", fg=PURPLE, bg=BG, cursor="size_nw_se", font=("Segoe UI", 11))
@@ -1419,5 +1415,27 @@ startup_sequence = TysmStartup(root, icon_window, icon_canvas,
     Path(__file__).resolve().parent / "assets" / "audio" / "startup.wav",
     on_complete=open_chat)
 record_activity_event("startup", "success")
-root.after(160, startup_sequence.start)
+if V4_WEB_MODE:
+    from tysm_v4_bridge import start as start_v4_bridge
+    def v4_send(text):
+        if request_in_progress:
+            add_message('Tysm', 'One moment. Still working on that.')
+            return
+        entry.delete(0, tk.END)
+        entry.insert(0, text)
+        send_message()
+    def v4_action(action):
+        if action == 'update':
+            check_for_updates()
+        elif action == 'logs':
+            for event in recent_activity_events(12):
+                add_message('Tysm', str(event))
+        elif action == 'screen':
+            request_screen_check()
+    # Tk remains alive as the real assistant backend, but is not the frontend.
+    panel.withdraw()
+    icon_window.withdraw()
+    v4_emit = start_v4_bridge(root, APP_DIR / 'v4_frontend', v4_send, v4_action)
+else:
+    root.after(160, startup_sequence.start)
 root.mainloop()
