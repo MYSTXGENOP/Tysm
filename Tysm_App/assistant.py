@@ -1172,19 +1172,36 @@ def toggle_activity_logs():
     if activity_visible.get():
         activity_visible.set(False)
         activity_frame.pack_forget()
-        activity_button.configure(text="LOGS")
+        quick_menu.entryconfigure(2, label="View logs")
     else:
         activity_visible.set(True)
         activity_frame.pack(side=tk.TOP, fill=tk.X, padx=15, pady=(0, 7), after=status_bar)
-        activity_button.configure(text="HIDE LOGS")
+        quick_menu.entryconfigure(2, label="Hide logs")
         refresh_activity_logs()
 
-activity_button = tk.Button(
-    header, text="LOGS", command=toggle_activity_logs,
+# V5: secondary actions live in one compact overflow menu.
+# Keep the existing update and activity-log handlers, without duplicate toolbar buttons.
+def request_screen_check():
+    # Never capture the desktop implicitly; screen inspection requires a
+    # separately implemented, explicit user-approved capture workflow.
+    add_message("Tysm", "Screen check isn't connected in this build yet. I won't capture your desktop without a clear approval step.")
+
+quick_menu = tk.Menu(header, tearoff=False, bg=SURFACE_2, fg="#f4e5ff",
+                     activebackground=PURPLE, activeforeground="white")
+quick_menu.add_command(label="Check screen", command=request_screen_check)
+quick_menu.add_command(label="Check updates", command=check_for_updates)
+quick_menu.add_command(label="View logs", command=toggle_activity_logs)
+
+def show_quick_menu():
+    quick_menu.tk_popup(menu_button.winfo_rootx(),
+                        menu_button.winfo_rooty() + menu_button.winfo_height())
+
+menu_button = tk.Button(
+    header, text="···", command=show_quick_menu,
     bg=SURFACE_2, fg=CYAN, activebackground=PURPLE,
     activeforeground="white", relief=tk.FLAT, bd=0,
-    font=("Consolas", 9, "bold"), cursor="hand2", padx=8, pady=6)
-activity_button.pack(side=tk.RIGHT, padx=(0, 6))
+    font=("Segoe UI", 14, "bold"), cursor="hand2", padx=8, pady=2)
+menu_button.pack(side=tk.RIGHT, padx=(0, 6))
 
 # Full-size animated character/pendant stage inside the chat.
 # Pixel-art resizing uses NEAREST, preserving intentional hard edges.
@@ -1253,11 +1270,7 @@ checkin_box = tk.Checkbutton(controls, text="AUTO CHECK-INS",
     activebackground=BG, activeforeground="white", font=("Consolas", 9),
     highlightthickness=0)
 checkin_box.pack(side=tk.RIGHT)
-update_button = tk.Button(controls, text="CHECK UPDATES", command=check_for_updates,
-    bg=SURFACE_2, fg="#e6d5f6", activebackground=PURPLE,
-    activeforeground="white", relief=tk.FLAT, bd=0,
-    font=("Consolas", 9), cursor="hand2", padx=10, pady=6)
-update_button.pack(side=tk.LEFT, padx=(8, 0))
+# Update checking is available from the header overflow menu.
 
 
 transcript_frame = tk.Frame(body, bg=SURFACE_2, padx=1, pady=1)
