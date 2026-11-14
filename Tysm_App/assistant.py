@@ -26,6 +26,7 @@ from tysm_voice import guidance as voice_guidance
 from tysm_phone import PhoneReminders
 from tysm_desktop import execute as execute_window_command
 from tysm_activity_logs import record as record_activity_event, recent as recent_activity_events
+from tysm_portraits import PortraitChooser, portrait_path
 from tysm_recovery import create as create_backup, backups as list_backups, verify as verify_backup, daily as daily_backup
 
 # User data lives outside the replaceable application installation.
@@ -834,6 +835,7 @@ def finish_reply(reply, error, provider_name=None):
         # Keep the actual reply even if it resembles an earlier conversation turn.
         messages.append({"role": "assistant", "content": reply})
         add_message("Tysm", reply)
+        update_reply_portrait(reply)
         if pending_history_user is not None:
             history_store.append_exchange(pending_history_user, reply)
             # Keep a separate last-exchange timestamp. Never alter user memories.
@@ -1160,6 +1162,32 @@ for text_value, font_value, fg_value in (
     label.pack(anchor="w")
     label.bind("<ButtonPress-1>", panel_drag_start)
     label.bind("<B1-Motion>", panel_drag_move)
+
+# V5: optional tiny portrait, chosen by Tysm when she replies.
+# Missing assets must never prevent the assistant from starting.
+portrait_chooser = PortraitChooser()
+portrait_image = None
+portrait_label = tk.Label(header, bg=BG, bd=0, highlightthickness=0)
+portrait_label.pack(side=tk.LEFT, padx=(8, 0))
+
+def update_reply_portrait(reply):
+    global portrait_image
+    chosen = portrait_chooser.choose(reply)
+    path = portrait_path(chosen)
+    if not path.is_file():
+        portrait_label.configure(image="", text="")
+        portrait_image = None
+        return
+    try:
+        from PIL import Image, ImageTk
+        with Image.open(path) as source:
+            thumb = source.convert("RGBA")
+            thumb.thumbnail((44, 44), Image.Resampling.NEAREST)
+            portrait_image = ImageTk.PhotoImage(thumb)
+        portrait_label.configure(image=portrait_image, text="")
+    except Exception:
+        portrait_label.configure(image="", text="")
+        portrait_image = None
 
 close_button = tk.Button(header, text="✕", command=close_chat,
     bg=SURFACE_2, fg=PINK, activebackground=PURPLE, activeforeground="white",
