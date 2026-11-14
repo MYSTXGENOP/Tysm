@@ -925,7 +925,7 @@ def open_chat():
     panel.lift()
     panel.attributes("-topmost", True)
     def done():
-        panel.minsize(350, 170)
+        panel.minsize(270, 170)
         bubble_canvas.itemconfigure(body_window, state="normal")
         entry.focus_set()
     animate_geometry((x, y, 76, 76), (dest_x, dest_y, w, h), done)
@@ -1089,7 +1089,7 @@ MUTED = "#aaa0bb"
 
 panel = tk.Toplevel(root)
 panel.title("TYSM // PHANTOM MORPHING BUBBLE")
-panel.geometry("470x640+120+100")
+panel.geometry("290x390+120+100")
 bubble_state = {"compact": False, "placed": False, "normal_size": (470, 640)}
 panel.minsize(350, 170)
 panel.overrideredirect(True)
@@ -1143,8 +1143,8 @@ accent.bind("<Configure>", lambda e: (accent.delete("all"),
     accent.create_rectangle(0, 0, e.width//2, 4, fill=PURPLE, outline=""),
     accent.create_rectangle(e.width//2, 0, e.width, 4, fill=PINK, outline="")))
 
-header = tk.Frame(body, bg=BG, height=65)
-header.pack(fill=tk.X, padx=16, pady=(12, 5))
+header = tk.Frame(body, bg=BG, height=50)
+header.pack(fill=tk.X, padx=9, pady=(7, 3))
 header.bind("<ButtonPress-1>", panel_drag_start)
 header.bind("<B1-Motion>", panel_drag_move)
 
@@ -1155,8 +1155,8 @@ header.bind("<B1-Motion>", panel_drag_move)
 title_group = tk.Frame(header, bg=BG)
 title_group.pack(side=tk.LEFT, fill=tk.Y)
 for text_value, font_value, fg_value in (
-    ("TYSM", ("Segoe UI", 16, "bold"), "#ffffff"),
-    ("// PHANTOM INTERFACE", ("Consolas", 9), PINK),
+    ("TYSM", ("Segoe UI", 11, "bold"), "#f28ccf"),
+    ("// ONLINE", ("Consolas", 7), CYAN),
 ):
     label = tk.Label(title_group, text=text_value, font=font_value, fg=fg_value, bg=BG, anchor="w")
     label.pack(anchor="w")
@@ -1168,7 +1168,7 @@ for text_value, font_value, fg_value in (
 portrait_chooser = PortraitChooser()
 portrait_image = None
 portrait_label = tk.Label(header, bg=BG, bd=0, highlightthickness=0)
-portrait_label.pack(side=tk.LEFT, padx=(8, 0))
+portrait_label.pack(side=tk.LEFT, padx=(5, 0))
 
 def update_reply_portrait(reply):
     global portrait_image
@@ -1182,7 +1182,7 @@ def update_reply_portrait(reply):
         from PIL import Image, ImageTk
         with Image.open(path) as source:
             thumb = source.convert("RGBA")
-            thumb.thumbnail((44, 44), Image.Resampling.NEAREST)
+            thumb.thumbnail((34, 34), Image.Resampling.NEAREST)
             portrait_image = ImageTk.PhotoImage(thumb)
         portrait_label.configure(image=portrait_image, text="")
     except Exception:
@@ -1244,7 +1244,7 @@ avatar.bind("<ButtonPress-1>", panel_drag_start)
 avatar.bind("<B1-Motion>", panel_drag_move)
 
 status_bar = tk.Frame(body, bg=BG)
-status_bar.pack(fill=tk.X, padx=17, pady=(0, 9))
+status_bar.pack(fill=tk.X, padx=9, pady=(0, 3))
 tk.Label(status_bar, text="●", fg=CYAN, bg=BG, font=("Segoe UI", 10)).pack(side=tk.LEFT)
 status_label = tk.Label(status_bar, text="Ready", fg=CYAN, bg=BG,
     font=("Consolas", 10), anchor="w")
@@ -1273,7 +1273,7 @@ def refresh_activity_logs():
     root.after(2000, refresh_activity_logs)
 
 composer = tk.Frame(body, bg=SURFACE_2, padx=8, pady=8)
-composer.pack(side=tk.BOTTOM, fill=tk.X, padx=15, pady=(0, 12))
+composer.pack(side=tk.BOTTOM, fill=tk.X, padx=9, pady=(0, 8))
 entry = tk.Entry(composer, font=("Segoe UI", 11), bg="#30203e",
     fg="white", insertbackground=PINK, relief=tk.FLAT, bd=0,
     highlightthickness=1, highlightbackground=PURPLE, highlightcolor=PINK)
@@ -1302,7 +1302,7 @@ checkin_box.pack(side=tk.RIGHT)
 
 
 transcript_frame = tk.Frame(body, bg=SURFACE_2, padx=1, pady=1)
-transcript_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=15, pady=(0, 8))
+transcript_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=9, pady=(0, 5))
 chat_panel = scrolledtext.ScrolledText(transcript_frame, wrap=tk.WORD,
     font=("Segoe UI", 10), bg=SURFACE, fg="#f1e9fb", insertbackground=PINK,
     selectbackground="#663c8b", state=tk.DISABLED, relief=tk.FLAT, bd=0,
@@ -1314,8 +1314,8 @@ chat_panel.tag_configure("user_msg", foreground=CYAN, lmargin1=6, lmargin2=6)
 
 # Compact mode is a genuinely smaller panel, not merely a short wide one.
 # Keep the normal chat dimensions so the full animation stage is restored.
-COMPACT_WIDTH = 390
-COMPACT_HEIGHT = 500
+COMPACT_WIDTH = 290
+COMPACT_HEIGHT = 390
 
 def toggle_compact():
     if morph_state["running"]:
@@ -1336,7 +1336,7 @@ def toggle_compact():
         animation_stage.configure(height=137)
         avatar.configure(width=118, height=118)
         pendant_animator.set_compact(True)
-        panel.minsize(350, 390)
+        panel.minsize(270, 350)
         panel.geometry(f"{COMPACT_WIDTH}x{COMPACT_HEIGHT}")
         compact_button.configure(text="▢")
     else:
