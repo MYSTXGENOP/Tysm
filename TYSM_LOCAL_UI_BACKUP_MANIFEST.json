@@ -1,0 +1,22 @@
+{
+  "description": "Approved user-triggered backup of installed Tysm frontend HTML only",
+  "based_on": "tysm-overhaul-v5",
+  "files": [
+    {
+      "path": "Tysm_App/v4_frontend/overlay.html",
+      "bytes": 18786,
+      "sha256": "0a65289f7294618c73f1e0f3d312861a90ff4c5523caf2df350a86988df04400"
+    },
+    {
+      "path": "Tysm_App/v4_frontend/index.html",
+      "bytes": 21924,
+      "sha256": "d5c5fb740fa6709d10b4d4d25f0d158cca9d7703af6cc24c07360a9e48606220"
+    },
+    {
+      "path": "Tysm_App/v4_frontend/boot_overlay.html",
+      "bytes": 9923,
+      "sha256": "07ba2e0b2ace47a2f653dc616119e2cf95e040ba9cfcd336db7f72f093ab52df"
+    }
+  ],
+  "not_included": "No EXE, local memories, settings, chat logs, API credentials, or local files"
+}
