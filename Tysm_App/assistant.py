@@ -213,9 +213,11 @@ def build_system_message(current_user_text=""):
             f"{facts_text}\n\n"
             f"Music preferences explicitly stated by the user (not Spotify data):\n{music_text}\n\n"
             f"Typing-style guidance: {style_guidance}\n\n"
+            "The current conversation starts fresh each session. The following are historical "
+            "long-term notes, not part of today's conversation; do not imply any past event "
+            "just happened. Newer explicit corrections override older preferences.\n"
             f"{adaptive_memory.context(current_user_text)}\n"
             f"{adaptive_memory.recent_activity(current_user_text)}\n"
-            f"Relevant notes for current conversation: {v35.relevant_memory(current_user_text)}\n"
             f"Recent corrections: {v35.reflection_context()}\n"
             f"{v35.awareness_summary() or 'Desktop awareness disabled.'}\n"
             "If asked about recent activity, use actual saved exchanges, not generic personality notes; if no activity is saved, say so. "
@@ -229,7 +231,8 @@ def build_system_message(current_user_text=""):
 
 
 history_store = HistoryStore(HISTORY_FILE, HISTORY_SETTINGS)
-messages = [build_system_message()] + history_store.load_messages()
+# Do not replay the last process's conversation on startup. It is archived by HistoryStore.
+messages = [build_system_message()]
 # The context filter in ask_ai removes legacy tags when Ollama receives messages.
 request_in_progress = False
 pending_history_user = None
@@ -361,8 +364,36 @@ def describe_style_profile():
     return " ".join(details)
 
 
+def reset_live_conversation():
+    """Reset current model/visual context, preserving durable long-term memories."""
+    messages[:] = [build_system_message()]
+    if v4_emit is not None:
+        v4_emit("session_reset")
+    # Tk chat transcript is retained only until the next explicit reset.
+    try:
+        chat_panel.config(state=tk.NORMAL)
+        chat_panel.delete("1.0", tk.END)
+        chat_panel.config(state=tk.DISABLED)
+    except (NameError, tk.TclError):
+        pass
+
+
 def handle_memory_command(text):
     lowered = text.lower().strip()
+
+    if lowered in ("/session", "/sessions"):
+        add_message("You", text)
+        add_message("Tysm", history_store.status() if lowered == "/session" else history_store.list_sessions())
+        return True
+    if lowered in ("/session new", "/new chat"):
+        history_store.begin_session()
+        reset_live_conversation()
+        add_message("Tysm", "New conversation started. Older conversations are archived; long-term memories stay.")
+        return True
+    if lowered.startswith("/session show "):
+        add_message("You", text)
+        add_message("Tysm", history_store.show_session(text[len("/session show "):]))
+        return True
 
     if lowered == "/learn":
         add_message("You", text)
@@ -375,7 +406,7 @@ def handle_memory_command(text):
         return True
     if lowered == "/learn clear":
         adaptive_memory.clear()
-        messages[0] = build_system_message(prompt)
+        messages[0] = build_system_message()
         add_message("You", text)
         add_message("Tysm", "Automatic notes, excerpts, and saved exchanges cleared. Your older manual memory file was not changed.")
         return True
@@ -383,7 +414,7 @@ def handle_memory_command(text):
     if match:
         action, note_id = match.group(1), int(match.group(2))
         changed = adaptive_memory.delete_note(note_id) if action == "delete" else adaptive_memory.protect(note_id)
-        messages[0] = build_system_message(prompt)
+        messages[0] = build_system_message()
         add_message("You", text)
         add_message("Tysm", "Updated that memory." if changed else "Couldn't find that memory ID.")
         return True
@@ -407,9 +438,9 @@ def handle_memory_command(text):
 
     if lowered == "/history clear":
         history_store.clear()
-        messages[:] = [build_system_message()]
-        add_message("You", text)
-        add_message("Tysm", "Local conversation history and current chat context cleared.")
+        history_store.begin_session()
+        reset_live_conversation()
+        add_message("Tysm", "Saved conversation archives and current chat context cleared. Long-term memories remain.")
         return True
 
     if lowered == "/style":
@@ -420,7 +451,7 @@ def handle_memory_command(text):
     if lowered == "/style off":
         memory["style"]["enabled"] = False
         save_memory()
-        messages[0] = build_system_message(prompt)
+        messages[0] = build_system_message()
         add_message("You", text)
         add_message("Tysm", "Style learning is paused. Use /style on to resume it.")
         return True
@@ -428,7 +459,7 @@ def handle_memory_command(text):
     if lowered == "/style on":
         memory["style"]["enabled"] = True
         save_memory()
-        messages[0] = build_system_message(prompt)
+        messages[0] = build_system_message()
         add_message("You", text)
         add_message("Tysm", "Style learning is back on. I only save pattern counts, not your message text.")
         return True
@@ -448,8 +479,9 @@ def handle_memory_command(text):
         memory["style"] = empty_style_profile()
         save_memory()
         history_store.clear()
+        history_store.begin_session()
         adaptive_memory.clear()
-        messages[:] = [build_system_message()]
+        reset_live_conversation()
         add_message("You", text)
         add_message("Tysm", "Done. I cleared my saved memory.")
         return True
@@ -466,7 +498,7 @@ def handle_memory_command(text):
                 save_memory()
             else:
                 store_fact(fact)
-            messages[0] = build_system_message(prompt)
+            messages[0] = build_system_message()
             add_message("You", text)
             add_message("Tysm", "Got it. I'll keep that in my memory file.")
             return True
@@ -483,7 +515,7 @@ def start_request(prompt, displayed_text, kind="chat", speaker="You"):
     request_in_progress = True
     active_request_kind = kind
     assistant_state = "thinking"
-    messages[0] = build_system_message(prompt)
+    messages[0] = build_system_message()
     if len(messages) > 41:
         messages[1:] = messages[-40:]
     messages.append({"role": "user", "content": prompt})
