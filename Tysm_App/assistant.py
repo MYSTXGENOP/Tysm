@@ -218,7 +218,6 @@ def build_system_message(current_user_text=""):
             "just happened. Newer explicit corrections override older preferences.\n"
             f"{adaptive_memory.context(current_user_text)}\n"
             f"{adaptive_memory.recent_activity(current_user_text)}\n"
-            f"Historical, potentially relevant notes: {v35.relevant_memory(current_user_text)}\n"
             f"Recent corrections: {v35.reflection_context()}\n"
             f"{v35.awareness_summary() or 'Desktop awareness disabled.'}\n"
             "If asked about recent activity, use actual saved exchanges, not generic personality notes; if no activity is saved, say so. "
