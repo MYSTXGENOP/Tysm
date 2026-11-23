@@ -116,13 +116,32 @@ body.power-dialog-open #app,body.powering #app {z-index:22}
 body.powering #projection,body.powering #messages,body.powering #head,body.powering #composer {filter:contrast(1.75) saturate(1.8)}
 @media (prefers-reduced-motion:reduce){#powerFx.active,#powerFx *{animation-duration:.6s!important;animation-iteration-count:1!important}}
 
+
+/* Command browser: a lightweight overlay, no changes to the ankh, portraits or startup. */
+#commandsPanel {display:none;position:absolute;inset:41px 6px 6px;z-index:38;background:linear-gradient(165deg,#211328,#0b0a14);border:1px solid #f18cc26b;border-radius:7px;box-shadow:0 8px 32px #000b;flex-direction:column;min-height:0;overflow:hidden}
+#commandsPanel.open {display:flex}
+#commandsHead {display:flex;justify-content:space-between;align-items:center;gap:6px;padding:9px 10px;border-bottom:1px solid #ef7abb4d}
+#commandsHead strong {font:700 12px Consolas,monospace;color:#fba5d3;letter-spacing:.08em}
+#commandsHead small {font:9px Consolas,monospace;color:#8deebb}
+#commandsClose {background:#362238;color:#ffd2e5;border:1px solid #b35f8c;border-radius:4px;padding:3px 8px}
+#commandsSearch {width:calc(100% - 16px);margin:8px;border:1px solid #94547e;border-radius:4px;padding:7px 8px;background:#0d0a15;color:#fff;font-size:11px}
+#commandsList {overflow-y:auto;flex:1;min-height:0;padding:0 9px 8px;scrollbar-color:#a34d80 #201429}
+.commandGroup {font:700 10px Consolas,monospace;color:#8bf1bc;padding:8px 3px 4px;letter-spacing:.08em}
+.commandRow {display:block;width:100%;text-align:left;background:#33203b80;color:#f4d0e2;margin:4px 0;border:1px solid #804c7255;border-radius:5px;padding:7px}
+.commandRow:hover,.commandRow:focus-visible {border-color:#8bf1bc;background:#49304d}
+.commandRow code {display:block;color:#f9a2ce;font:700 11px Consolas,monospace;overflow-wrap:anywhere}
+.commandRow span {display:block;color:#c3b2c5;font:10px/1.4 'Segoe UI',sans-serif;margin-top:3px}
+#commandsHint {padding:6px 9px;border-top:1px solid #ef7abb40;color:#9acfae;font:9px Consolas,monospace}
+body.overlay #commandsPanel {inset:39px 5px 5px}
+
 </style></head><body class="overlay"><!-- Use under the existing Tysm localhost bridge: /api/send and /api/poll -->
 <div id="app"><button id="dock" aria-label="Open Tysm chat" title="Original V5 idle ankh (unchanged)"><img id="ankh" src="original_ankh.gif" alt="Original spinning ankh"><span class="statusdot"></span></button>
 <section id="chat" aria-label="Tysm chat window"><header id="head"><div class="square">✳</div><div class="titles"><strong>TYSM</strong><small>● ONLINE // PHANTOM LINK</small></div><button id="sound" aria-label="Toggle UI beeps" title="UI sounds off">♩</button><button id="menu" aria-label="Actions">···</button><button id="close" aria-label="Close chat">×</button></header>
-<div id="menuitems"><button data-action="screen">Check screen</button><button data-action="update">Check updates</button><button data-action="logs">View logs</button><button data-action="github_backup">Backup current version to GitHub</button><button id="powerEntry" type="button" class="power-entry">⏻  Power / Reboot</button></div>
+<div id="menuitems"><button id="commandsEntry" type="button">⌘ Commands / Help</button><button data-action="screen">Check screen</button><button data-action="update">Check updates</button><button data-action="logs">View logs</button><button data-action="github_backup">Backup current version to GitHub</button><button id="powerEntry" type="button" class="power-entry">⏻  Power / Reboot</button></div>
 <div id="projection"><div id="hologram-shell"><img id="hologram" src="v6_reactions/neutral.png" alt="Tysm hologram"></div><div class="scan"></div><div class="glitchblock"></div><div id="sig">TYSM / PHANTOM.EXE<br><b>◉ VISUAL LINK ACTIVE</b><br>PS2 · 16-BIT</div><div id="reactionname">NEUTRAL</div></div>
 <main id="messages" aria-live="polite"><div class="msg"><span class="who">TYSM</span>Still here. Heh. Figures.</div></main>
 <div id="composer"><input id="input" aria-label="Message Tysm" placeholder="Message Tysm ..." autocomplete="off"><button id="send" title="Send" aria-label="Send">➤</button></div><div id="resizeGrip" title="Resize chat"></div>
+<section id="commandsPanel" role="dialog" aria-modal="false" aria-labelledby="commandsTitle" aria-hidden="true"><div id="commandsHead"><div><strong id="commandsTitle">COMMAND DIRECTORY</strong><small> // LOCAL HELP</small></div><button id="commandsClose" type="button" aria-label="Close commands">×</button></div><input id="commandsSearch" type="search" placeholder="Search commands or features" aria-label="Search Tysm commands"><div id="commandsList"></div><div id="commandsHint">Select a command to insert it. Nothing sends automatically.</div></section>
 <div id="powerDialog" role="dialog" aria-modal="true" aria-labelledby="powerHeading" aria-hidden="true">
 <div class="power-panel"><h2 id="powerHeading" class="power-title">TYSM // SYSTEM POWER</h2>
 <p class="power-desc">Shut down Tysm completely, or reboot the assistant. Your PC stays on.</p>
@@ -225,7 +244,109 @@ async function powerOff(mode){
 $('powerShutdown').addEventListener('click',()=>powerOff('tysm_shutdown'));
 $('powerReboot').addEventListener('click',()=>powerOff('tysm_reboot'));
 
-function hideChat(){$('chat').classList.remove('open');$('dock').classList.remove('chat-active');$('menuitems').classList.remove('open');opened=false;}
+
+// Built-in help. Clicking never executes a command; it only fills the composer.
+const COMMAND_GROUPS=[
+ ['Memory & conversations',[
+  ['/memory','Display manually saved long-term facts.'],
+  ['remember: YOUR FACT','Save a fact long-term. Replace YOUR FACT.'],
+  ['/learn','Show automatically saved notes and their IDs.'],
+  ['/learn on','Resume automatic learning.'],
+  ['/learn off','Pause automatic learning.'],
+  ['/learn delete ID','Delete an automatic note with its numeric ID.'],
+  ['/learn protect ID','Protect an automatic note from pruning.'],
+  ['/learn clear','Clear automatic learning, notes and recent excerpts.'],
+  ['/history','Show local conversation-history status.'],
+  ['/history on','Save local conversation exchanges.'],
+  ['/history off','Stop saving new exchanges.'],
+  ['/history clear','Clear saved conversation history and current context.'],
+  ['/style','Display learned writing-style summary.'],
+  ['/style on','Enable writing-style learning.'],
+  ['/style off','Pause writing-style learning.'],
+  ['/forget','Caution: erase manual facts, history and learned notes.']
+ ]],
+ ['Diagnostics & desktop',[
+  ['/status','Show Tysm status and awareness state.'],
+  ['/doctor','Check the local Ollama model and memory database.'],
+  ['/awareness','Show whether active-app awareness is enabled.'],
+  ['/awareness on','Enable foreground app-name awareness only.'],
+  ['/awareness off','Disable foreground app-name awareness.'],
+  ['/awareness last','Show last foreground app when available.'],
+  ['open Blender','Open an installed app, folder, or website.'],
+  ['search web for EXAMPLE','Open a browser search.'],
+  ['list open windows','List visible desktop window names.'],
+  ['switch to APP','Focus an open application window.'],
+  ['minimize APP','Minimize a matching application window.'],
+  ['volume up','Increase system volume.'],
+  ['volume down','Decrease system volume.'],
+  ['mute','Toggle system mute.']
+ ]],
+ ['Phone & reminders',[
+  ['/phone','Show phone notification setup status.'],
+  ['/phone setup','Create a private ntfy topic for your phone.'],
+  ['/phone test','Send a test phone notification.'],
+  ['remind me in 20 minutes to CHECK TASK','Schedule a phone reminder.'],
+  ['/reminders','List pending or failed reminders.'],
+  ['/remind cancel ID','Cancel a reminder by number.'],
+  ['/remind retry ID','Retry a failed reminder.']
+ ]],
+ ['Music & Spotify',[
+  ['/spotify help','Show the Spotify command list.'],
+  ['/spotify connect','Open Spotify sign-in.'],
+  ['/spotify playlists','List Spotify playlists.'],
+  ['/spotify songs 1','List songs in playlist number 1.'],
+  ['/spotify favorite 1 main','Alias playlist 1 as main.'],
+  ['/spotify favorites','Show playlist shortcuts.'],
+  ['/spotify play main','Play your saved main playlist.'],
+  ['/spotify pause','Pause Spotify.'],
+  ['/spotify resume','Resume Spotify.'],
+  ['/spotify skip','Skip the current song.'],
+  ['/music remember I like EXAMPLE','Save a music preference.'],
+  ['/music memories','Show your saved music preferences.']
+ ]],
+ ['Updates & backups',[
+  ['/update','Check for Tysm updates.'],
+  ['/backup now','Create a local state backup.'],
+  ['/backups','Show the most recent local backups.'],
+  ['/backup verify','Verify the latest local backup.']
+ ]]
+];
+function renderCommands(){
+ const term=$('commandsSearch').value.trim().toLocaleLowerCase();
+ const list=$('commandsList');list.replaceChildren();let count=0;
+ for(const [group,commands] of COMMAND_GROUPS){
+  const found=commands.filter(([command,description])=>(command+' '+description+' '+group).toLocaleLowerCase().includes(term));
+  if(!found.length)continue;
+  const heading=document.createElement('div');heading.className='commandGroup';heading.textContent=group;list.append(heading);
+  for(const [command,description] of found){
+   count++;
+   const btn=document.createElement('button');btn.type='button';btn.className='commandRow';btn.title='Insert command into the message box';
+   const name=document.createElement('code');name.textContent=command;
+   const details=document.createElement('span');details.textContent=description;
+   btn.append(name,details);
+   btn.addEventListener('click',()=>{$('input').value=command;$('commandsPanel').classList.remove('open');$('commandsPanel').setAttribute('aria-hidden','true');$('input').focus();});
+   list.append(btn);
+  }
+ }
+ if(!count){const msg=document.createElement('div');msg.className='commandGroup';msg.textContent='No matching commands.';list.append(msg);}
+}
+function openCommands(){
+ $('menuitems').classList.remove('open');
+ $('commandsPanel').classList.add('open');
+ $('commandsPanel').setAttribute('aria-hidden','false');
+ $('commandsSearch').value='';
+ renderCommands();$('commandsSearch').focus();
+}
+function closeCommands(){
+ $('commandsPanel').classList.remove('open');
+ $('commandsPanel').setAttribute('aria-hidden','true');
+}
+$('commandsEntry').addEventListener('click',openCommands);
+$('commandsClose').addEventListener('click',()=>{closeCommands();$('input').focus();});
+$('commandsSearch').addEventListener('input',renderCommands);
+window.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('commandsPanel').classList.contains('open')){closeCommands();$('input').focus();}});
+
+function hideChat(){$('chat').classList.remove('open');$('dock').classList.remove('chat-active');$('menuitems').classList.remove('open');closeCommands();opened=false;}
 if(preview)$('dock').addEventListener('click',showChat);$('close').onclick=hideChat;
 $('menu').onclick=()=>$('menuitems').classList.toggle('open');
 $('send').onclick=send;$('input').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}});
