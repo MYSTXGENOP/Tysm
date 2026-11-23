@@ -170,7 +170,7 @@ const canned=[['neutral','I can hear you. What are we doing?'],['smug','You took
 let demoCount=0;
 async function send(){const val=$('input').value.trim();if(!val||busy)return;$('input').value='';if(preview){appendMessage('You',val);busy=true;setTimeout(()=>{const [face,msg]=canned[(demoCount++)%canned.length];appendMessage('Tysm',msg);speak(msg,face);busy=false;},700);return;}try{busy=true;const r=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:val})});if(!r.ok)appendMessage('Tysm','Connection issue: message was not sent.');}catch(e){appendMessage('Tysm','Connection to Python is unavailable.')}finally{busy=false;}}
 const oldFaceMap={1:'neutral',2:'curious',3:'smug',4:'annoyed',5:'teasing',6:'pout'};
-function receiveEvent(e){if(e.type==='message'){appendMessage(e.who,e.text||'');if(String(e.who).toLowerCase()==='tysm')speak(e.text||'',pending);}else if(e.type==='portrait'){const next=e.reaction||oldFaceMap[Number(e.face)]||'neutral';pending=next;if(!$('projection').classList.contains('talking'))changeReaction(next);}else if(e.type==='reaction'){const next=e.name||e.reaction||'neutral';pending=next;if(!$('projection').classList.contains('talking'))changeReaction(next);}}
+function receiveEvent(e){if(e.type==='session_reset'){$('messages').replaceChildren();return;}if(e.type==='message'){appendMessage(e.who,e.text||'');if(String(e.who).toLowerCase()==='tysm')speak(e.text||'',pending);}else if(e.type==='portrait'){const next=e.reaction||oldFaceMap[Number(e.face)]||'neutral';pending=next;if(!$('projection').classList.contains('talking'))changeReaction(next);}else if(e.type==='reaction'){const next=e.name||e.reaction||'neutral';pending=next;if(!$('projection').classList.contains('talking'))changeReaction(next);}}
 async function poll(){if(preview)return;try{const r=await fetch('/api/poll?since='+lastEvent,{cache:'no-store'});if(r.ok){const data=await r.json();for(const event of data.events||[]){lastEvent=Math.max(lastEvent,event.id||0);receiveEvent(event);}}}catch(e){}setTimeout(poll,500);}
 function showChat(){$('chat').classList.remove('open');void $('chat').offsetWidth;$('chat').classList.add('open');opened=true;$('dock').classList.add('chat-active');$('input').focus();}
 
@@ -256,6 +256,10 @@ const COMMAND_GROUPS=[
   ['/learn delete ID','Delete an automatic note with its numeric ID.'],
   ['/learn protect ID','Protect an automatic note from pruning.'],
   ['/learn clear','Clear automatic learning, notes and recent excerpts.'],
+  ['/session','Show current session ID and history status.'],
+  ['/session new','Start a fresh conversation; keep previous ones archived.'],
+  ['/sessions','List older saved conversations.'],
+  ['/session show ID','Read an older session without loading it into live context.'],
   ['/history','Show local conversation-history status.'],
   ['/history on','Save local conversation exchanges.'],
   ['/history off','Stop saving new exchanges.'],
